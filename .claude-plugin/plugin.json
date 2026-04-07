@@ -1,0 +1,9 @@
+{
+  "name": "feature-status",
+  "version": "1.0.0",
+  "description": "Gather data from GitHub PRs, Jira kanban boards, and Jira features to produce concise status updates for posting to Jira.",
+  "author": "Matthew Jones",
+  "skills": [
+    "skills/status"
+  ]
+}

@@ -20,14 +20,6 @@
           ],
           "prSearchTerms": ["PAY-1234", "payments-v2"]
         },
-        "githubProjects": [
-          {
-            "owner": "myorg",
-            "number": 12,
-            "statusField": "Status",
-            "url": "https://github.com/orgs/myorg/projects/12"
-          }
-        ],
         "jiraBoards": [
           {
             "boardId": 500,
@@ -55,36 +47,8 @@
           ],
           "prSearchTerms": ["SRCH-890"]
         },
-        "githubProjects": [],
         "jiraBoards": [],
         "jiraIssues": ["SRCH-890"]
-      }
-    },
-    {
-      "name": "mobile-onboarding",
-      "summary": "Mobile App Onboarding Flow",
-      "enabled": true,
-      "sources": {
-        "github": {
-          "repos": [
-            {
-              "owner": "myorg",
-              "repo": "mobile-app",
-              "branchPatterns": ["feat/onboard-*"]
-            }
-          ],
-          "prSearchTerms": ["onboarding"]
-        },
-        "githubProjects": [
-          {
-            "owner": "myorg",
-            "number": 7,
-            "statusField": "Status",
-            "url": "https://github.com/orgs/myorg/projects/7"
-          }
-        ],
-        "jiraBoards": [],
-        "jiraIssues": []
       }
     }
   ]
