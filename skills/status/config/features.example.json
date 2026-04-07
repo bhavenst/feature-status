@@ -20,6 +20,14 @@
           ],
           "prSearchTerms": ["PAY-1234", "payments-v2"]
         },
+        "githubProjects": [
+          {
+            "owner": "myorg",
+            "number": 12,
+            "statusField": "Status",
+            "url": "https://github.com/orgs/myorg/projects/12"
+          }
+        ],
         "jiraBoards": [
           {
             "boardId": 500,
