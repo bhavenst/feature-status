@@ -1,0 +1,91 @@
+{
+  "features": [
+    {
+      "name": "payments-v2",
+      "summary": "Payment Processing Redesign",
+      "jiraFeature": "PAY-1234",
+      "enabled": true,
+      "sources": {
+        "github": {
+          "repos": [
+            {
+              "owner": "myorg",
+              "repo": "payments-api",
+              "branchPatterns": ["feat/pay-*", "*PAY-1234*"]
+            },
+            {
+              "owner": "myorg",
+              "repo": "payments-ui"
+            }
+          ],
+          "prSearchTerms": ["PAY-1234", "payments-v2"]
+        },
+        "githubProjects": [
+          {
+            "owner": "myorg",
+            "number": 12,
+            "statusField": "Status",
+            "url": "https://github.com/orgs/myorg/projects/12"
+          }
+        ],
+        "jiraBoards": [
+          {
+            "boardId": 500,
+            "project": "PAY",
+            "url": "https://myorg.atlassian.net/jira/software/projects/PAY/boards/500",
+            "jql": "status != Done ORDER BY updated DESC"
+          }
+        ],
+        "jiraIssues": ["PAY-1234"]
+      }
+    },
+    {
+      "name": "search-reindex",
+      "summary": "Search Infrastructure Reindexing",
+      "jiraFeature": "SRCH-890",
+      "enabled": true,
+      "sources": {
+        "github": {
+          "repos": [
+            {
+              "owner": "myorg",
+              "repo": "search-service",
+              "branchPatterns": ["*reindex*", "*SRCH-890*"]
+            }
+          ],
+          "prSearchTerms": ["SRCH-890"]
+        },
+        "githubProjects": [],
+        "jiraBoards": [],
+        "jiraIssues": ["SRCH-890"]
+      }
+    },
+    {
+      "name": "mobile-onboarding",
+      "summary": "Mobile App Onboarding Flow",
+      "enabled": true,
+      "sources": {
+        "github": {
+          "repos": [
+            {
+              "owner": "myorg",
+              "repo": "mobile-app",
+              "branchPatterns": ["feat/onboard-*"]
+            }
+          ],
+          "prSearchTerms": ["onboarding"]
+        },
+        "githubProjects": [
+          {
+            "owner": "myorg",
+            "number": 7,
+            "statusField": "Status",
+            "url": "https://github.com/orgs/myorg/projects/7"
+          }
+        ],
+        "jiraBoards": [],
+        "jiraIssues": []
+      }
+    }
+  ]
+}
