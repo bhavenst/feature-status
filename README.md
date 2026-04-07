@@ -29,6 +29,7 @@ Feature areas are defined in `skills/status/config/features.json`. Each feature 
 - **sources** — data sources to aggregate:
   - `github.repos` — repositories and branch patterns to monitor
   - `github.prSearchTerms` — PR search filters
+  - `githubProjects` — GitHub Projects V2 boards to pull item status from
   - `jiraBoards` — kanban boards to track
   - `jiraIssues` — Jira issues to fetch details from
 
