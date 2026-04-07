@@ -1,6 +1,6 @@
 ---
 name: feature-status
-description: Gather data from GitHub PRs, GitHub Projects boards, Jira kanban boards, and Jira features to produce a concise status update. Supports dry-run mode (default) to preview the update before posting it as a Jira comment. Use when user asks for feature status, status update, progress report, or wants to update a Jira feature with current status.
+description: Gather data from GitHub PRs, Jira kanban boards, and Jira features to produce a concise status update. Supports dry-run mode (default) to preview the update before posting it as a Jira comment. Use when user asks for feature status, status update, progress report, or wants to update a Jira feature with current status.
 user-invocable: true
 allowed-tools:
   - Read
@@ -16,37 +16,25 @@ allowed-tools:
 
 # /feature-status - Feature Status Updater
 
-Gathers status from multiple sources (GitHub PRs, GitHub Projects boards, Jira kanban boards, Jira features) and produces a concise, topical status update suitable for posting as a comment on the top-level Jira feature.
+Gathers status from multiple sources (GitHub PRs, Jira kanban boards, Jira features) and produces a concise, topical status update suitable for posting as a comment on the top-level Jira feature.
 
 **Arguments**: `$ARGUMENTS`
 
 Supported forms:
-- `/feature-status <name>` — dry-run (default), outputs status to console
-- `/feature-status <name> --post` — posts the status as a Jira comment on the feature
-- `/feature-status --all` — dry-run for all enabled features
-- `/feature-status --all --post` — posts status for all enabled features
+- `/feature-status <area-name>` — dry-run (default), outputs status to console
+- `/feature-status <area-name> --post` — posts the status as a Jira comment on the feature
+- `/feature-status --all` — dry-run for all enabled areas
+- `/feature-status --all --post` — posts status for all enabled areas
 
-Where `<name>` matches a name in `config/features.json`.
+Where `<area-name>` matches a name in `config/features.json` (e.g., "installer", "authz").
 
 ## Implementation
 
 ### 1. Setup and Configuration
 
-Locate the feature-status root directory by searching upward from the current working directory for a `feature-status/config/features.json` file, or by checking common locations:
-
 ```bash
-# Search for config relative to cwd, then common locations
-for candidate in \
-  "./feature-status" \
-  "../feature-status" \
-  "$(git rev-parse --show-toplevel 2>/dev/null)/feature-status"; do
-  if [[ -f "$candidate/config/features.json" ]]; then
-    STATUS_ROOT="$(cd "$candidate" && pwd)"
-    break
-  fi
-done
-
-CONFIG_FILE="$STATUS_ROOT/config/features.json"
+CONFIG_FILE="${CLAUDE_SKILL_DIR}/config/features.json"
+STATE_ROOT="$HOME/.claude/feature-status"
 DRY_RUN=true
 
 # Parse arguments
@@ -62,10 +50,10 @@ for arg in $ARGUMENTS; do
 done
 
 if [[ -z "$AREA_NAME" ]]; then
-  echo "Usage: /feature-status <name> [--post]"
+  echo "Usage: /feature-status <area-name> [--post]"
   echo "       /feature-status --all [--post]"
   echo ""
-  echo "Available features:"
+  echo "Available areas:"
   jq -r '.features[] | select(.enabled == true) | "  \(.name) — \(.jiraFeature) (\(.summary))"' "$CONFIG_FILE"
   exit 0
 fi
@@ -73,31 +61,28 @@ fi
 
 ### 2. Load Feature Configuration
 
-Each feature in `config/features.json` defines its data sources:
+Each feature in `config/features.json` defines:
 
 ```json
 {
   "features": [
     {
-      "name": "payments-v2",
-      "summary": "Payment Processing Redesign",
-      "jiraFeature": "PAY-1234",
+      "name": "installer",
+      "summary": "Installation and Reference Architectures",
+      "jiraFeature": "ANSTRAT-1899",
       "enabled": true,
       "sources": {
         "github": {
           "repos": [
-            { "owner": "myorg", "repo": "payments-api", "branchPatterns": ["feat/pay-*", "*PAY-1234*"] },
-            { "owner": "myorg", "repo": "payments-ui" }
+            { "owner": "automation-nexus", "repo": "nexus", "branchPatterns": ["035-*", "*ANSTRAT-1899*", "feat/prototype-operator"] },
+            { "owner": "automation-nexus", "repo": "automation-orchestrator-operator" }
           ],
-          "prSearchTerms": ["PAY-1234", "payments-v2"]
+          "prSearchTerms": ["ANSTRAT-1899", "installer", "operator"]
         },
-        "githubProjects": [
-          { "owner": "myorg", "number": 12, "statusField": "Status" }
-        ],
         "jiraBoards": [
-          { "boardId": 500, "project": "PAY", "jql": "status != Done ORDER BY updated DESC" }
+          { "boardId": 11707, "project": "AAP", "jql": "status != Done ORDER BY updated DESC" }
         ],
-        "jiraIssues": ["PAY-1234"]
+        "jiraIssues": ["ANSTRAT-1899"]
       }
     }
   ]
@@ -110,19 +95,19 @@ if [[ "$AREA_NAME" == "__all__" ]]; then
 else
   AREA_CONFIG=$(jq --arg name "$AREA_NAME" '.features[] | select(.name == $name)' "$CONFIG_FILE")
   if [[ -z "$AREA_CONFIG" ]]; then
-    echo "ERROR: Feature '$AREA_NAME' not found in config"
+    echo "ERROR: Area '$AREA_NAME' not found in config"
     exit 1
   fi
   AREAS="$AREA_NAME"
 fi
 ```
 
-### 3. For Each Feature: Gather Data
+### 3. For Each Feature Area: Gather Data
 
 #### 3.1. Load Previous State
 
 ```bash
-STATE_DIR="$STATUS_ROOT/state/$AREA_NAME"
+STATE_DIR="$STATE_ROOT/state/$AREA_NAME"
 mkdir -p "$STATE_DIR"
 
 LAST_RUN_FILE="$STATE_DIR/last-run.json"
@@ -156,61 +141,7 @@ For each relevant PR, compute:
 - Size category (small <100, medium <500, large <2000, extra-large 2000+)
 - Review status (approved, changes-requested, pending)
 
-#### 3.3. Fetch GitHub Projects Board Data
-
-For each project in `sources.githubProjects`:
-
-Query the GitHub Projects V2 GraphQL API to get items and their status column values:
-
-```bash
-gh api graphql -f query='
-query($owner: String!, $number: Int!) {
-  organization(login: $owner) {
-    projectV2(number: $number) {
-      title
-      items(first: 100) {
-        nodes {
-          fieldValueByName(name: "Status") {
-            ... on ProjectV2ItemFieldSingleSelectValue { name }
-          }
-          content {
-            ... on Issue {
-              number
-              title
-              assignees(first: 3) { nodes { login } }
-              state
-              updatedAt
-              url
-              labels(first: 5) { nodes { name } }
-            }
-            ... on PullRequest {
-              number
-              title
-              author { login }
-              state
-              updatedAt
-              url
-            }
-          }
-          updatedAt
-        }
-      }
-    }
-  }
-}' -f owner="$OWNER" -F number="$PROJECT_NUMBER"
-```
-
-If the project belongs to a user rather than an org, substitute `user(login: $owner)` for `organization(login: $owner)`.
-
-Compute board summary (same shape as Jira boards):
-- Group items by their Status column value (e.g., "Todo", "In Progress", "Done")
-- Items that changed status since `LAST_RUN_DATE` (compare `updatedAt`)
-- Blocked or stale items (status is active but `updatedAt` > 7 days ago)
-- New items added since last run
-
-The `statusField` config value (default: `"Status"`) determines which project field to read for column grouping. Override it if the project uses a custom field name.
-
-#### 3.4. Fetch Jira Board Data
+#### 3.3. Fetch Jira Board Data
 
 For each board in `sources.jiraBoards`:
 
@@ -222,7 +153,7 @@ Compute board summary:
 - Blocked or stale items (in progress but no update in 7+ days)
 - New items added since last run
 
-#### 3.5. Fetch Jira Feature Data
+#### 3.4. Fetch Jira Feature Data
 
 For each issue in `sources.jiraIssues`:
 
@@ -231,13 +162,13 @@ Use `jira_get_issue` MCP tool to get:
 - Comments since `LAST_RUN_DATE`
 - Any status transitions since last run
 
-#### 3.6. Gather Notes (Optional)
+#### 3.5. Gather Notes (Optional)
 
 Check for `$STATE_DIR/notes.md` — a freeform file where the user can add manual context that should be included in the status update. If present, include its contents.
 
 ### 4. Synthesize Status Update
 
-Produce a concise, structured status comment:
+Produce a concise, structured status comment. The format:
 
 ```markdown
 ## Status Update — {Feature Name} ({JIRA_FEATURE})
@@ -245,7 +176,7 @@ Produce a concise, structured status comment:
 **Period:** Since {last_run_date}
 
 ### Progress
-- {What moved forward: merged PRs, closed board items, key decisions from Jira comments}
+- {Bullet points summarizing what moved forward: merged PRs, closed board items, key decisions from Jira comments}
 
 ### Active Work
 - {Open PRs with status: who is working on what, review state}
@@ -255,7 +186,7 @@ Produce a concise, structured status comment:
 - {Items stale >7 days, PRs with unresolved change requests, unassigned critical items}
 
 ### Upcoming
-- {New/backlog items ready to start, items in review about to merge}
+- {New/backlog items that appear ready to start, items in review about to merge}
 
 ### Metrics
 - PRs: {opened} opened, {merged} merged, {closed} closed since last update
@@ -282,7 +213,7 @@ echo "To post this as a comment on $JIRA_FEATURE:"
 echo "  /feature-status $AREA_NAME --post"
 ```
 
-Also save to `$STATUS_ROOT/output/$AREA_NAME-$DATE-draft.md` for reference.
+Also save to `$STATE_ROOT/output/$AREA_NAME-$DATE-draft.md` for reference.
 
 #### Post Mode (--post)
 
@@ -291,7 +222,8 @@ Use `jira_add_comment` MCP tool to post the status update as a comment on the Ji
 ```bash
 jira_add_comment "$JIRA_FEATURE" "$STATUS_UPDATE"
 
-echo "Posted status to $JIRA_FEATURE"
+echo "✓ Status posted to $JIRA_FEATURE"
+echo "  View: https://redhat.atlassian.net/browse/$JIRA_FEATURE"
 ```
 
 ### 6. Update State
@@ -316,16 +248,16 @@ JSON
 - **Jira MCP unavailable**: Fall back to cached data, warn user
 - **GitHub rate limit**: Show warning, use cached PR data
 - **No changes since last run**: Output "No significant changes since {date}" instead of empty update
-- **Missing config**: Show helpful error with available feature names
+- **Missing config**: Show helpful error with available area names
 
 ## Usage Examples
 
 ```bash
-# Preview status for a feature
-/feature-status payments-v2
+# Preview status for installer feature
+/feature-status installer
 
-# Post the update to Jira
-/feature-status payments-v2 --post
+# Post status to ANSTRAT-1899
+/feature-status installer --post
 
 # Preview all features
 /feature-status --all
