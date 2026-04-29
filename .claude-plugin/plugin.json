@@ -4,6 +4,6 @@
   "description": "Gather data from GitHub PRs, Jira kanban boards, and Jira features to produce concise status updates for posting to Jira.",
   "author": "Matthew Jones",
   "skills": [
-    "skills/status"
+    "skills/feature-status"
   ]
 }

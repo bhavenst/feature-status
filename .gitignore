@@ -1,5 +1,13 @@
 # Actual config (may contain internal project references)
-skills/status/config/features.json
+skills/feature-status/config/features.json
+
+# Runtime state and draft outputs (written by the skill at runtime)
+skills/feature-status/state/
+skills/feature-status/output/
 
 # OS
 .DS_Store
+
+
+# AI Agents
+.claude
