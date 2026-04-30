@@ -34,7 +34,7 @@ Where `<area-name>` matches a name in `config/features.json` (e.g., "installer",
 
 ```bash
 CONFIG_FILE="${CLAUDE_SKILL_DIR}/config/features.json"
-STATE_ROOT="$HOME/.claude/feature-status"
+STATE_ROOT="${CLAUDE_SKILL_DIR}/state"
 DRY_RUN=true
 
 # Parse arguments

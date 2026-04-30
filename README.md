@@ -35,22 +35,47 @@ Feature areas are defined in `skills/status/config/features.json`. Each feature 
 
 ## State
 
-Mutable state (run history, draft outputs) is stored in `~/.claude/feature-status/`:
+Mutable state (run history, draft outputs) is stored inside the skill directory:
 
 ```
-~/.claude/feature-status/
-  state/{area-name}/last-run.json    # last execution metadata
-  output/{area-name}-{date}-draft.md # generated status drafts
+{skill-dir}/state/{area-name}/last-run.json    # last execution metadata
+{skill-dir}/output/{area-name}-{date}-draft.md # generated status drafts
 ```
+
+For in-project installation this resolves to `.claude/skills/feature-status/state/` — entirely within the project.
 
 ## Installation
 
-The plugin is installed as a local plugin via symlink:
+### Method A — In-project
+Copy or symlink the skill directly into your project's `.claude/skills/` directory:
+
+```bash
+# From inside the target project:
+mkdir -p .claude/skills
+
+# Symlink (changes to plugin source are reflected immediately):
+ln -s /path/to/feature-status/skills/feature-status .claude/skills/feature-status
+
+# Or copy (standalone, no dependency on plugin source):
+cp -r /path/to/feature-status/skills/feature-status .claude/skills/feature-status
+```
+
+Then copy or symlink the config:
+```bash
+cp /path/to/feature-status/skills/feature-status/config/features.example.json \
+   .claude/skills/feature-status/config/features.json
+# Edit features.json with your feature areas
+```
+
+State and drafts are written to `.claude/skills/feature-status/state/` and `output/` within the project.
+
+### Method B — Global plugin (available in all projects)
 
 ```bash
 mkdir -p ~/.claude/plugins/local/feature-status/.claude-plugin
 cp .claude-plugin/plugin.json ~/.claude/plugins/local/feature-status/.claude-plugin/
-ln -s /path/to/feature-status/skills ~/.claude/plugins/local/feature-status/skills
+ln -s /path/to/feature-status/skills/feature-status \
+      ~/.claude/plugins/local/feature-status/skills/feature-status
 ```
 
 ## Requirements
