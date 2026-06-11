@@ -2,6 +2,17 @@
 
 A Claude Code plugin that aggregates status from GitHub PRs, Jira kanban boards, and Jira feature issues into concise status updates suitable for posting as Jira comments.
 
+## Fork differences
+
+This fork extends the [upstream plugin](https://github.com/matburt/feature-status) with interactive feature-lead workflows designed for daily async status reporting. Changes:
+
+- **Human-authored status narrative** — After collecting data, the skill prompts for a human-written summary that appears at the top of the report, above the auto-generated sections.
+- **Health labels** — Prompts for Green / Yellow / Red health status and syncs it to Jira labels on the ANSTRAT feature when posting (`--post`).
+- **Milestones with dates** — Prompts for key milestones and renders them as a table with inferred status (On track / At risk / Complete).
+- **Target end date management** — Shows the current target end date from the Jira feature and allows updating it inline during the status flow.
+- **Feature metadata display** — Before prompting, shows the current state of the Jira feature (health label, target start/end dates) so the user can make informed updates.
+- **Jira field updates on post** — `--post` mode now updates the health label and target end date on the Jira feature in addition to posting the status comment.
+
 ## Usage
 
 ```bash
