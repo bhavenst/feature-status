@@ -8,7 +8,7 @@ This fork extends the [upstream plugin](https://github.com/matburt/feature-statu
 
 - **Human-authored status narrative** — After collecting data, the skill prompts for a human-written summary that appears at the top of the report, above the auto-generated sections.
 - **Health labels** — Prompts for Green / Yellow / Red health status and syncs it to Jira labels on the ANSTRAT feature when posting (`--post`).
-- **Milestones with dates** — Prompts for key milestones and renders them as a table with inferred status (On track / At risk / Complete).
+- **Self-recycling milestone comment** — Milestones are maintained as a separate Jira comment that gets deleted and reposted on each `--post` run, keeping it near the top of recent comments (Jira doesn't support pinning). The skill finds the existing milestone comment by ID or by scanning, prompts to update/keep/skip, and rotates it. Milestone comment ID is tracked in state.
 - **Target end date management** — Shows the current target end date from the Jira feature and allows updating it inline during the status flow.
 - **Feature metadata display** — Before prompting, shows the current state of the Jira feature (health label, target start/end dates) so the user can make informed updates.
 - **Jira field updates on post** — `--post` mode now updates the health label and target end date on the Jira feature in addition to posting the status comment.
