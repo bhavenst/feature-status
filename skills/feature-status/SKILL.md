@@ -197,15 +197,14 @@ After showing the collected data and current feature state, use AskUserQuestion 
 
 2. **Status narrative** (free-text via "Other"): "Provide your status summary for this feature. This is your human-authored narrative that will appear at the top of the report."
 
-3. **Milestones** (free-text via "Other"): "List key milestones with dates (or say 'skip' to omit). Example: 'Design complete - 2026-06-15, Implementation done - 2026-07-30, QE signoff - 2026-08-15'"
-
-4. **Target end date update** (free-text via "Other"): "Update the target end date? Enter a date (YYYY-MM-DD) or 'keep' to leave unchanged. Current: {current_target_end or 'not set'}"
+3. **Target end date update** (free-text via "Other"): "Update the target end date? Enter a date (YYYY-MM-DD) or 'keep' to leave unchanged. Current: {current_target_end or 'not set'}"
 
 The user's responses become:
 - `HEALTH_LABEL` — green, yellow, or red
 - `HUMAN_STATUS` — the narrative text
-- `MILESTONES` — parsed into a list of milestone + date pairs
 - `TARGET_END_UPDATE` — a date string or null
+
+Note: Milestones are managed separately — see Step 6.5.
 
 ### 6. Synthesize Status Update
 
@@ -220,12 +219,6 @@ Produce a concise, structured status comment. The format:
 
 ### Summary
 {HUMAN_STATUS — the user's own narrative, inserted verbatim}
-
-### Milestones
-| Milestone | Target Date | Status |
-|-----------|-------------|--------|
-| {milestone_1} | {date_1} | {On track / At risk / Complete} |
-| {milestone_2} | {date_2} | {On track / At risk / Complete} |
 
 ### Risks / Blockers
 - {Items stale >7 days, PRs with unresolved change requests, unassigned critical items}
@@ -253,7 +246,73 @@ Rules for synthesis:
 - **Link issues**: Reference Jira keys and PR numbers inline.
 - **Highlight decisions**: If Jira comments contain decisions or clarifications, call them out.
 - **Flag risks early**: Any item that hasn't moved in 7+ days while in-progress is a risk. Surface risks prominently — do not wait for a sync.
-- **Milestones table**: Omit the section if the user skipped milestones. If included, infer status from dates (past due = "At risk", future = "On track", done items = "Complete").
+- **No milestones in status comments**: Milestones are managed as a separate self-recycling comment (see Step 6.5).
+
+### 6.5. Milestone Comment Management
+
+Milestones live in a **separate, self-recycling Jira comment** rather than inline
+in status updates. On each `--post` run, the milestone comment is deleted and
+reposted so it stays near the top of recent comments (Jira doesn't support pinning).
+
+#### Finding the existing milestone comment
+
+First check `milestoneCommentId` in the state file (`last-run.json`). If present,
+fetch that comment directly. If it no longer exists (404) or the state has no ID,
+fall back to scanning: fetch comments on the JIRA_FEATURE issue and look for one
+whose ADF body starts with a heading containing `"Milestone Plan —"`.
+
+#### If a milestone comment exists
+
+1. Parse the existing milestones from the ADF table rows into a readable list
+2. Present the current milestones to the user
+3. Use AskUserQuestion to ask: "Update milestones?"
+   - **Update** — user provides changes via free text (e.g., "Mark M1.6 as Done,
+     add M6 for UI integration"). Apply the changes to the parsed milestones.
+   - **Keep unchanged** — repost the existing milestones as-is (rotates the comment
+     to keep it recent)
+   - **Skip** — don't touch the milestone comment at all (leave it where it is)
+4. If update or keep:
+   a. Build the updated ADF body using the milestone comment format below
+   b. Post as a **new comment** on the JIRA_FEATURE issue
+   c. **Delete** the old milestone comment
+   d. Save the new comment ID to `milestoneCommentId` in state
+
+#### If no milestone comment exists
+
+1. Use AskUserQuestion: "No milestone plan comment found. Create one?"
+   - **Yes** — ask for milestones via free text, build ADF table, post as new comment
+   - **No** — skip silently
+2. Save comment ID to state if created
+
+#### Milestone comment format
+
+```markdown
+## Milestone Plan — {JIRA_FEATURE}: {Feature Name}
+**TED: {due_date}** | Updated: {today}
+
+| Milestone | Status |
+|-----------|--------|
+| {milestone_1} | {status_1} |
+| {milestone_2} | {status_2} |
+
+**Notes:** {any dependency or sizing notes}
+```
+
+The ADF structure uses a `heading` (level 2), a `paragraph` with bold TED and
+plain updated date, a `table` with `tableHeader` + `tableRow`/`tableCell` nodes,
+and a final `paragraph` for notes.
+
+#### Dry-run behavior
+
+In dry-run mode, if a milestone comment exists, show its current content at the
+bottom of the output:
+
+```
+---
+Milestone comment exists (comment ID {id}). Use --post to update it.
+Current milestones:
+  {parsed milestone list}
+```
 
 ### 7. Output or Post
 
@@ -306,6 +365,7 @@ cat > "$LAST_RUN_FILE" <<JSON
   "lastRunArea": "$AREA_NAME",
   "lastRunMode": "$(if $DRY_RUN; then echo 'dry-run'; else echo 'posted'; fi)",
   "lastRunFeature": "$JIRA_FEATURE",
+  "milestoneCommentId": "$MILESTONE_COMMENT_ID",
   "prsSeen": { "open": $OPEN_COUNT, "merged": $MERGED_COUNT },
   "boardSeen": { "total": $BOARD_TOTAL, "inProgress": $IN_PROGRESS_COUNT }
 }
