@@ -145,12 +145,14 @@ For each relevant PR, compute:
 
 For each board in `sources.jiraBoards`:
 
-Use `jira_get_board_issues` MCP tool with the configured boardId and JQL.
+Use `searchJiraIssuesUsingJql` MCP tool with the configured JQL to get the **direct children** (epics) of the feature.
 
-Compute board summary:
+Then fetch **sub-tasks** — the actual work items — by querying `parent in (KEY1, KEY2, ...)` for all epic keys returned. This two-level query is essential: metrics and staleness should be computed from sub-tasks, not epics.
+
+Compute board summary from the **sub-task level**:
 - Count by status category (To Do, In Progress, In Review, Done since last run)
 - Items that changed status since `LAST_RUN_DATE`
-- Blocked or stale items (in progress but no update in 7+ days)
+- Blocked or stale items (in progress but no update in 7+ days) — check at sub-task level only
 - New items added since last run
 
 #### 3.4. Fetch Jira Feature Data
@@ -245,7 +247,7 @@ Rules for synthesis:
 - **Name people**: Include assignee names so readers know who to follow up with.
 - **Link issues**: Reference Jira keys and PR numbers inline.
 - **Highlight decisions**: If Jira comments contain decisions or clarifications, call them out.
-- **Flag risks early**: Any item that hasn't moved in 7+ days while in-progress is a risk. Surface risks prominently — do not wait for a sync.
+- **Flag risks at sub-task level, not epic level**: Do not flag an epic as stale just because the epic issue itself hasn't been updated — check whether its sub-tasks are active. Only flag individual sub-tasks that are in progress with no update in 7+ days, or sub-tasks stuck in "New" that should have started.
 - **No milestones in status comments**: Milestones are managed as a separate self-recycling comment (see Step 6.5).
 
 ### 6.5. Milestone Comment Management
@@ -274,7 +276,10 @@ whose ADF body starts with a heading containing `"Milestone Plan —"`.
 4. If update or keep:
    a. Build the updated ADF body using the milestone comment format below
    b. Post as a **new comment** on the JIRA_FEATURE issue
-   c. **Delete** the old milestone comment
+   c. **Retire the old milestone comment**: The Atlassian MCP has no delete-comment
+      tool. Instead, update the old comment's body to
+      `~~This milestone plan has been superseded by the {date} update below.~~`
+      using `addCommentToJiraIssue` with the old `commentId`.
    d. Save the new comment ID to `milestoneCommentId` in state
 
 #### If no milestone comment exists
