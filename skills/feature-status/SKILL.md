@@ -214,8 +214,8 @@ Produce a concise, structured status comment. The format:
 
 ```markdown
 ## Status Update — {Feature Name} ({JIRA_FEATURE})
+**Status: {HEALTH_LABEL}**
 **Date:** {YYYY-MM-DD}
-**Health:** {HEALTH_LABEL — Green / Yellow / Red}
 **Period:** Since {last_run_date}
 **Target end:** {target_end_date}
 
