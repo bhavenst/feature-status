@@ -174,15 +174,13 @@ Before prompting the user, read the current state of the ANSTRAT feature issue s
 
 Fetch these fields from the ANSTRAT feature (e.g. `ANSTRAT-1972`):
 - **labels** — look for health label: `green`, `yellow`, or `red` (there will be at most one)
-- **customfield_10022** — Target start date (YYYY-MM-DD)
-- **customfield_10023** — Target end date (YYYY-MM-DD)
+- **duedate** — Target end date (YYYY-MM-DD), the standard Jira "Due Date" field
 
 Present a brief summary to the user:
 ```
 Current feature state for ANSTRAT-XXXX:
   Health: Green (label)  |  or "not set"
-  Target start: 2026-01-07  |  or "not set"
-  Target end: 2026-06-12  |  or "not set"
+  Target end (due date): 2026-07-25  |  or "not set"
 
 Data collected:
   GitHub: X open PRs, Y merged since last update
@@ -199,12 +197,12 @@ After showing the collected data and current feature state, use AskUserQuestion 
 
 2. **Status narrative** (free-text via "Other"): "Provide your status summary for this feature. This is your human-authored narrative that will appear at the top of the report."
 
-3. **Target end date update** (free-text via "Other"): "Update the target end date? Enter a date (YYYY-MM-DD) or 'keep' to leave unchanged. Current: {current_target_end or 'not set'}"
+3. **Target end date update** (free-text via "Other"): "Update the due date? Enter a date (YYYY-MM-DD) or 'keep' to leave unchanged. Current: {current_duedate or 'not set'}"
 
 The user's responses become:
 - `HEALTH_LABEL` — green, yellow, or red
 - `HUMAN_STATUS` — the narrative text
-- `TARGET_END_UPDATE` — a date string or null
+- `TARGET_END_UPDATE` — a date string or null (updates the `duedate` field)
 
 Note: Milestones are managed separately — see Step 6.5.
 
@@ -346,7 +344,7 @@ Remove any existing health label (`green`, `yellow`, `red`) and add the new one 
 
 **b) Update target end date if changed**
 
-If the user provided a new target end date, update `customfield_10023` on the ANSTRAT feature using `editJiraIssue`.
+If the user provided a new target end date, update the `duedate` field on the ANSTRAT feature using `editJiraIssue`.
 
 **c) Post status comment**
 
